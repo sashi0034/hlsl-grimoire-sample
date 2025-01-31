@@ -29,8 +29,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
     // 2. シェーダーをロード
     Shader vs, ps;
-    vs.LoadVS("Assets/shader/sample.fx", "VSMain");
-    ps.LoadPS("Assets/shader/sample.fx", "PSMain");
+    vs.LoadVS("Assets/shader/sample.after_1.fx", "VSMain");
+    ps.LoadPS("Assets/shader/sample.after_1.fx", "PSMain");
 
     // 3. パイプラインステートを作成
     PipelineState pipelineState;
