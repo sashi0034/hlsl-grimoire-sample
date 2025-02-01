@@ -27,8 +27,8 @@ void TrianglePolygon::Draw(RenderContext& rc)
 }
 void TrianglePolygon::LoadShaders()
 {
-	m_vertexShader.LoadVS("Assets/shader/sample.fx", "VSMain");
-	m_pixelShader.LoadPS("Assets/shader/sample.fx", "PSMain");
+	m_vertexShader.LoadVS("Assets/shader/sample.after.fx", "VSMain");
+	m_pixelShader.LoadPS("Assets/shader/sample.after.fx", "PSMain");
 }
 void TrianglePolygon::InitPipelineState(RootSignature& rs)
 {

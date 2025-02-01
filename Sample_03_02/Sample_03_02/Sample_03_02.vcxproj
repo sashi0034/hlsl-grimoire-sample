@@ -198,6 +198,8 @@
     <ClCompile Include="..\..\MiniEngine\tkFile\TkmFile.cpp" />
     <ClCompile Include="..\..\MiniEngine\tkFile\TksFile.cpp" />
     <ClCompile Include="..\..\MiniEngine\VertexBuffer.cpp" />
+    <Content Include="Assets\shader\sample.after.fx" />
+    <Content Include="Assets\shader\sample.fx" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -259,6 +261,9 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\image\sample_00.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Assets\image\sample_00.dds" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
