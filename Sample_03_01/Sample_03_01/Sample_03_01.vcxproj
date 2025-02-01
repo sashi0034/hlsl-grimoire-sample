@@ -198,6 +198,8 @@
     <ClCompile Include="..\..\MiniEngine\tkFile\TkmFile.cpp" />
     <ClCompile Include="..\..\MiniEngine\tkFile\TksFile.cpp" />
     <ClCompile Include="..\..\MiniEngine\VertexBuffer.cpp" />
+    <Content Include="Assets\shader\sample.after.fx" />
+    <Content Include="Assets\shader\sample.fx" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -256,6 +258,18 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="system\system.h" />
     <ClInclude Include="TrianglePolygon.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Assets\font\myfile.spritefont" />
+    <Content Include="Assets\modelData\preset\albedoMap_None.png" />
+    <Content Include="Assets\modelData\preset\mk.bat" />
+    <Content Include="Assets\modelData\preset\normalMap_None.DDS" />
+    <Content Include="Assets\modelData\preset\NullAlbedoMap.DDS" />
+    <Content Include="Assets\modelData\preset\NullNormalMap.bmp" />
+    <Content Include="Assets\modelData\preset\NullNormalMap.DDS" />
+    <Content Include="Assets\modelData\preset\specMap_None.DDS" />
+    <Content Include="Assets\modelData\preset\texconv.exe" />
+    <Content Include="Assets\modelData\preset\ZeroValueMap.DDS" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
