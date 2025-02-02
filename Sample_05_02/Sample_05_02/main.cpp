@@ -7,24 +7,31 @@
 struct Light
 {
     // ディレクションライト用のメンバ
-    Vector3 dirDirection;   // ライトの方向
+    Vector3 dirDirection; // ライトの方向
     float pad0;
-    Vector3 dirColor;       // ライトのカラー
+    Vector3 dirColor; // ライトのカラー
     float pad1;
 
     // ライト構造体にポイントライト用のメンバ変数を追加
-    Vector3 ptPosition;     // 位置
-    float pad2;             // パディング
-    Vector3 ptColor;        // カラー
-    float ptRange;          // 影響範囲
+    Vector3 ptPosition; // 位置
+    float pad2; // パディング
+    Vector3 ptColor; // カラー
+    float ptRange; // 影響範囲
 
     // step-1 ライト構造体にスポットライト用のメンバ変数を追加
+    alignas(16) Vector3 spPosition; // 位置
 
-    Vector3 eyePos;         // 視点の位置
-    float pad4;
+    alignas(16) Vector3 spColor;
+    float spRange;
 
-    Vector3 ambientLight;   // アンビエントライト
+    alignas(16) Vector3 spDirection;
+    float spAngle;
+
+    alignas(16) Vector3 eyePos; // 視点の位置
+
+    alignas(16) Vector3 ambientLight; // アンビエントライト
 };
+
 //////////////////////////////////////
 //関数宣言
 //////////////////////////////////////
@@ -41,8 +48,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     // ゲームの初期化
     InitGame(hInstance, hPrevInstance, lpCmdLine, nCmdShow, TEXT("Game"));
 
-    g_camera3D->SetPosition({ 0.0f, 50.0f, 200.0f });
-    g_camera3D->SetTarget({ 0.0f, 50.0f, 0.0f });
+    g_camera3D->SetPosition({0.0f, 50.0f, 200.0f});
+    g_camera3D->SetTarget({0.0f, 50.0f, 0.0f});
 
     //////////////////////////////////////
     // ここから初期化を行うコードを記述する
@@ -58,11 +65,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     InitAmbientLight(light);
 
     // step-2 スポットライトのデータを初期化する
+    light.spPosition = {0.0f, 50.0f, 0.0f};
+    light.spColor = {10.0f, 10.0f, 10.0f};
+    light.spDirection = {1.0f, -1.0f, 1.0f};
+    light.spDirection.Normalize();
+    light.spRange = 300.0f;
+    light.spAngle = Math::DegToRad(25.0f);
 
     // モデルを初期化する
     // モデルを初期化するための情報を構築する
     Model lightModel, bgModel, teapotModel;
-    InitModel(bgModel, teapotModel, lightModel , light);
+    InitModel(bgModel, teapotModel, lightModel, light);
 
     //////////////////////////////////////
     // 初期化を行うコードを書くのはここまで！！！
@@ -79,9 +92,32 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         //////////////////////////////////////
 
         // step-3 コントローラー左スティックでスポットライトを移動させる
+        light.spPosition.x -= g_pad[0]->GetLStickXF();
+        if (g_pad[0]->IsPress(enButtonB))
+        {
+            light.spPosition.y += g_pad[0]->GetLStickYF();
+        }
+        else
+        {
+            light.spPosition.z -= g_pad[0]->GetLStickYF();
+        }
 
         // step-4 コントローラー右スティックでスポットライトを回転させる
-		
+        Quaternion qRotY;
+        qRotY.SetRotationDegY(g_pad[0]->GetRStickXF() * 0.01f);
+        qRotY.Apply(light.spDirection);
+
+        Vector3 rotAxis;
+        rotAxis.Cross(g_vec3AxisY, light.spDirection);
+        Quaternion qRotX;
+        qRotX.SetRotation(rotAxis, g_pad[0]->GetRStickYF() * 0.01f);
+
+        qRotX.Apply(light.spDirection);
+
+        Quaternion qRot;
+        qRot.SetRotation({0.0f, 0.0f, -1.0f}, light.spDirection);
+        lightModel.UpdateWorldMatrix(light.spPosition, qRot, g_vec3One);
+
         // 背景モデルをドロー
         bgModel.Draw(renderContext);
 
@@ -135,7 +171,7 @@ void InitModel(Model& bgModel, Model& teapotModel, Model& lightModel, Light& lig
     teapotModel.Init(teapotModelInitData);
 
     teapotModel.UpdateWorldMatrix(
-        { 0.0f, 20.0f, 0.0f },
+        {0.0f, 20.0f, 0.0f},
         g_quatIdentity,
         g_vec3One
     );
