@@ -16,7 +16,9 @@ struct SPSIn
     float3 normal   : NORMAL;
     float2 uv       : TEXCOORD0;
     float3 worldPos : TEXCOORD1;
+
     // step-1 ピクセルシェーダーへの入力にカメラ空間の法線を追加する
+    float3 normalInView : TEXCOORD2;
 };
 
 ///////////////////////////////////////////
@@ -75,6 +77,7 @@ SPSIn VSMain(SVSIn vsIn, uniform bool hasSkin)
     psIn.uv = vsIn.uv;
 
     // step-2 カメラ空間の法線を求める
+    psIn.normalInView = mul(mView, vsIn.normal);
 
     return psIn;
 }
@@ -90,15 +93,21 @@ float4 PSMain(SPSIn psIn) : SV_Target0
     // リムライトの強さを求める
 
     // step-3 サーフェイスの法線と光の入射方向に依存するリムの強さを求める
+    float power1 = 1.0f - max(0.0f, dot(dirDirection, psIn.normal));
 
     // step-4 サーフェイスの法線と視線の方向に依存するリムの強さを求める
+    float power2 = 1.0f - max(0.0f, psIn.normalInView.z * -1.0f); // 視線ベクトル (0, 0, 1) なので z 要素を使うだけで良い
 
     // step-5 最終的なリムの強さを求める
+    float rimPower = power1 * power2;
+    rimPower = pow(rimPower, 1.3f);
 
     // 最終的な反射光を求める
     float3 finalLig = directionLig + ambientLight;
 
     // step-6 最終的な反射光にリムライトの反射光を合算する
+    float3 rimColor = rimPower * dirColor;
+    finalLig += rimColor;
 
     float4 finalColor = g_texture.Sample(g_sampler, psIn.uv);
 
