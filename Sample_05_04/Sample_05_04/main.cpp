@@ -7,17 +7,22 @@
 struct Light
 {
     // ディレクションライト用のメンバ
-    Vector3 dirDirection;   // ライトの方向
+    Vector3 dirDirection; // ライトの方向
     float pad0;
-    Vector3 dirColor;       // ライトのカラー
+    Vector3 dirColor; // ライトのカラー
     float pad1;
 
-    Vector3 eyePos;         // 視点の位置
+    Vector3 eyePos; // 視点の位置
     float pad2;
-    Vector3 ambientLight;   // アンビエントライト
+    Vector3 ambientLight; // アンビエントライト
     float pad3;
 
     // step-1 地面色と天球色、地面の法線を追加する
+    alignas(16) Vector3 groundColor; // 地面の色
+
+    alignas(16) Vector3 skyColor; // 天球の色
+
+    alignas(16) Vector3 groundNormal; // 地面の法線
 };
 
 //////////////////////////////////////
@@ -37,8 +42,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // ゲームの初期化
     InitGame(hInstance, hPrevInstance, lpCmdLine, nCmdShow, TEXT("Game"));
 
-    g_camera3D->SetPosition({ 0.0f, 50.0f, 200.0f });
-    g_camera3D->SetTarget({ 0.0f, 50.0f, 0.0f });
+    g_camera3D->SetPosition({0.0f, 50.0f, 200.0f});
+    g_camera3D->SetTarget({0.0f, 50.0f, 0.0f});
 
     //////////////////////////////////////
     // ここから初期化を行うコードを記述する
@@ -53,11 +58,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     InitAmbientLight(light);
 
     // step-2 地面色、天球色、地面の法線のデータを設定する
+    light.groundColor = {0.7f, 0.5f, 0.3f};
+    light.skyColor = {0.15f, 0.7f, 0.95f};
+    light.groundNormal = {0.0f, 1.0f, 0.0f};
 
     // モデルを初期化する
     // モデルを初期化するための情報を構築する
     Model lightModel, bgModel, teapotModel;
-    InitModel(bgModel, teapotModel, lightModel , light);
+    InitModel(bgModel, teapotModel, lightModel, light);
 
     //////////////////////////////////////
     // 初期化を行うコードを書くのはここまで！！！
@@ -131,7 +139,7 @@ void InitModel(Model& bgModel, Model& teapotModel, Model& lightModel, Light& lig
     teapotModel.Init(teapotModelInitData);
 
     teapotModel.UpdateWorldMatrix(
-        { 0.0f, 20.0f, 0.0f },
+        {0.0f, 20.0f, 0.0f},
         g_quatIdentity,
         g_vec3One
     );
