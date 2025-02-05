@@ -4,8 +4,8 @@
 // 頂点構造体
 struct SimpleVertex
 {
-    Vector4 pos;    // 頂点座標
-    Vector2 uv;     // UV座標
+    Vector4 pos; // 頂点座標
+    Vector2 uv; // UV座標
 };
 
 // 関数宣言
@@ -31,6 +31,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     bgModel.Init(modelInitData);
 
     // step-1 Spriteクラスのオブジェクトを初期化する
+    SpriteInitData spriteInitData;
+    spriteInitData.m_ddsFilePath[0] = "Assets/image/test.dds";
+    spriteInitData.m_fxFilePath = "Assets/shader/sample2D.fx";
+
+    spriteInitData.m_width = 128.0f;
+    spriteInitData.m_height = 128.0f;
+
+    spriteInitData.m_alphaBlendMode = AlphaBlendMode::AlphaBlendMode_Trans;
+    Sprite test2D;
+    test2D.Init(spriteInitData);
 
     //////////////////////////////////////
     // 初期化を行うコードを書くのはここまで！！！
@@ -50,6 +60,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         bgModel.Draw(renderContext);
 
         // step-2 スプライトのドローコールを実行する
+        test2D.Draw(renderContext);
 
         //////////////////////////////////////
         //絵を描くコードを書くのはここまで！！！
@@ -72,17 +83,16 @@ void InitRootSignature(RootSignature& rs)
 // パイプラインステートの初期化
 void InitPipelineState(PipelineState& pipelineState, RootSignature& rs, Shader& vs, Shader& ps)
 {
-
     // 頂点レイアウトを定義する
     D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
     {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
     };
 
     // パイプラインステートを作成
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = { 0 };
-    psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {0};
+    psoDesc.InputLayout = {inputElementDescs, _countof(inputElementDescs)};
     psoDesc.pRootSignature = rs.Get();
     psoDesc.VS = CD3DX12_SHADER_BYTECODE(vs.GetCompiledBlob());
     psoDesc.PS = CD3DX12_SHADER_BYTECODE(ps.GetCompiledBlob());
