@@ -4,8 +4,8 @@
 // 頂点構造体
 struct SimpleVertex
 {
-    Vector4 pos;    // 頂点座標
-    Vector2 uv;     // UV座標
+    Vector4 pos; // 頂点座標
+    Vector2 uv; // UV座標
 };
 
 // 関数宣言
@@ -25,18 +25,50 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     //////////////////////////////////////
 
     // step-1 ルートシグネチャを作成
+    RootSignature rootSignature;
+    InitRootSignature(rootSignature);
 
     // step-2 シェーダーをロード
+    Shader vs, ps;
+    vs.LoadVS("Assets/shader/sample.fx", "VSMain");
+    ps.LoadPS("Assets/shader/sample.fx", "PSMain");
 
     // step-3 パイプラインステートを作成
+    PipelineState pipelineState;
+    InitPipelineState(pipelineState, rootSignature, vs, ps);
 
     // step-4 四角形の板ポリの頂点バッファを作成
+    SimpleVertex vertices[] =
+    {
+        {Vector4(-1.0f, 1.0f, 0.0f, 1.0f), Vector2(0.0f, 0.0f)},
+        {Vector4(1.0f, 1.0f, 0.0f, 1.0f), Vector2(1.0f, 0.0f)},
+        {Vector4(-1.0f, -1.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f)},
+        {Vector4(1.0f, -1.0f, 0.0f, 1.0f), Vector2(1.0f, 1.0f)},
+    };
+
+    VertexBuffer triangleVB;
+    triangleVB.Init(sizeof(vertices), sizeof(vertices[0]));
+    triangleVB.Copy(vertices);
 
     // step-5 板ポリのインデックスバッファを作成
+    uint16_t indices[] =
+    {
+        0, 1, 2,
+        2, 1, 3,
+    };
+
+    IndexBuffer triangleIB;
+    triangleIB.Init(sizeof(indices), sizeof(indices[0]));
+    triangleIB.Copy(indices);
 
     // step-6 テクスチャをロード
+    Texture texture;
+    texture.InitFromDDSFile(L"Assets/image/test.dds");
 
     // step-7 ディスクリプタヒープを作成
+    DescriptorHeap ds;
+    ds.RegistShaderResource(0, texture);
+    ds.Commit();
 
     //////////////////////////////////////
     // 初期化を行うコードを書くのはここまで！！！
@@ -54,6 +86,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         //////////////////////////////////////
 
         // step-8 ドローコールを実行
+        renderContext.SetRootSignature(rootSignature);
+        renderContext.SetPipelineState(pipelineState);
+        renderContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        renderContext.SetVertexBuffer(triangleVB);
+        renderContext.SetIndexBuffer(triangleIB);
+        renderContext.SetDescriptorHeap(ds);
+        renderContext.DrawIndexed(6);
 
         /// //////////////////////////////////////
         //絵を描くコードを書くのはここまで！！！
@@ -65,28 +104,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 }
 
 // ルートシグネチャの初期化
-void InitRootSignature( RootSignature& rs )
+void InitRootSignature(RootSignature& rs)
 {
     rs.Init(D3D12_FILTER_MIN_MAG_MIP_LINEAR,
-        D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-        D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-        D3D12_TEXTURE_ADDRESS_MODE_WRAP);
+            D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+            D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+            D3D12_TEXTURE_ADDRESS_MODE_WRAP);
 }
 
 // パイプラインステートの初期化
 void InitPipelineState(PipelineState& pipelineState, RootSignature& rs, Shader& vs, Shader& ps)
 {
-
     //  頂点レイアウトを定義する
     D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
     {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
     };
 
     // パイプラインステートを作成
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = { 0 };
-    psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {0};
+    psoDesc.InputLayout = {inputElementDescs, _countof(inputElementDescs)};
     psoDesc.pRootSignature = rs.Get();
     psoDesc.VS = CD3DX12_SHADER_BYTECODE(vs.GetCompiledBlob());
     psoDesc.PS = CD3DX12_SHADER_BYTECODE(ps.GetCompiledBlob());
