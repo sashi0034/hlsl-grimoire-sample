@@ -6,7 +6,7 @@
 // 定数
 ///////////////////////////////////////////////////
 static const int NUM_DIRECTIONAL_LIGHT = 4; // ディレクションライトの本数
-static const float PI = 3.1415926f;         // π
+static const float PI = 3.1415926f; // π
 
 ///////////////////////////////////////////////////
 // 構造体
@@ -22,37 +22,38 @@ cbuffer ModelCb : register(b0)
 // ディレクションライト
 struct DirectionalLight
 {
-    float3 direction;   // ライトの方向
-    float4 color;       // ライトの色
+    float3 direction; // ライトの方向
+    float4 color; // ライトの色
 };
+
 // ライト用の定数バッファー
 cbuffer LightCb : register(b1)
 {
     DirectionalLight directionalLight[NUM_DIRECTIONAL_LIGHT];
-    float3 eyePos;          // カメラの視点
-    float specPow;          // スペキュラの絞り
-    float3 ambientLight;    // 環境光
+    float3 eyePos; // カメラの視点
+    float specPow; // スペキュラの絞り
+    float3 ambientLight; // 環境光
 };
 
 // 頂点シェーダーへの入力
 struct SVSIn
 {
-    float4 pos : POSITION;  // モデルの頂点座標
+    float4 pos : POSITION; // モデルの頂点座標
     float3 normal : NORMAL; // 法線
-    float3 tangent  : TANGENT;
+    float3 tangent : TANGENT;
     float3 biNormal : BINORMAL;
-    float2 uv : TEXCOORD0;  // UV座標
+    float2 uv : TEXCOORD0; // UV座標
 };
 
 // ピクセルシェーダーへの入力
 struct SPSIn
 {
-    float4 pos : SV_POSITION;       // スクリーン空間でのピクセルの座標
-    float3 normal : NORMAL;         // 法線
+    float4 pos : SV_POSITION; // スクリーン空間でのピクセルの座標
+    float3 normal : NORMAL; // 法線
     float3 tangent : TANGENT;
     float3 biNormal : BINORMAL;
-    float2 uv : TEXCOORD0;          // uv座標
-    float3 worldPos : TEXCOORD1;    // ワールド空間でのピクセルの座標
+    float2 uv : TEXCOORD0; // uv座標
+    float3 worldPos : TEXCOORD1; // ワールド空間でのピクセルの座標
 };
 
 ///////////////////////////////////////////////////
@@ -60,6 +61,9 @@ struct SPSIn
 ///////////////////////////////////////////////////
 
 // step-1 各種マップにアクセスするための変数を追加
+Texture2D<float4> g_albedo : register(t0);
+Texture2D<float4> g_normalMap : register(t1);
+Texture2D<float4> g_metallicsSmoothMap : register(t2); // r: metalic, a: smoothness
 
 // サンプラーステート
 sampler g_sampler : register(s0);
@@ -70,7 +74,7 @@ sampler g_sampler : register(s0);
 
 float3 GetNormal(float3 normal, float3 tangent, float3 biNormal, float2 uv)
 {
-    float3 binSpaceNormal = g_normalMap.SampleLevel (g_sampler, uv, 0.0f).xyz;
+    float3 binSpaceNormal = g_normalMap.SampleLevel(g_sampler, uv, 0.0f).xyz;
     binSpaceNormal = (binSpaceNormal * 2.0f) - 1.0f;
 
     float3 newNormal = tangent * binSpaceNormal.x + biNormal * binSpaceNormal.y + normal * binSpaceNormal.z;
@@ -85,7 +89,7 @@ float Beckmann(float m, float t)
     float t4 = t * t * t * t;
     float m2 = m * m;
     float D = 1.0f / (4.0f * m2 * t4);
-    D *= exp((-1.0f / m2) * (1.0f-t2)/ t2);
+    D *= exp((-1.0f / m2) * (1.0f - t2) / t2);
     return D;
 }
 
@@ -93,7 +97,7 @@ float Beckmann(float m, float t)
 float SpcFresnel(float f0, float u)
 {
     // from Schlick
-    return f0 + (1-f0) * pow(1-u, 5);
+    return f0 + (1 - f0) * pow(1 - u, 5);
 }
 
 /// <summary>
@@ -127,7 +131,7 @@ float CookTorranceSpecular(float3 L, float3 V, float3 N, float metallic)
     float F = SpcFresnel(f0, VdotH);
 
     // G項を求める
-    float G = min(1.0f, min(2*NdotH*NdotV/VdotH, 2*NdotH*NdotL/VdotH));
+    float G = min(1.0f, min(2 * NdotH * NdotV / VdotH, 2 * NdotH * NdotL / VdotH));
 
     // m項を求める
     float m = PI * NdotV * NdotH;
@@ -152,7 +156,9 @@ float CookTorranceSpecular(float3 L, float3 V, float3 N, float metallic)
 float CalcDiffuseFromFresnel(float3 N, float3 L, float3 V)
 {
     // step-4 フレネル反射を考慮した拡散反射光を求める
-
+    float dotNL = saturate(dot(N, L));
+    float dotNV = saturate(dot(N, V));
+    return dotNL * dotNV;
 }
 
 /// <summary>
@@ -182,19 +188,34 @@ float4 PSMain(SPSIn psIn) : SV_Target0
     float3 normal = GetNormal(psIn.normal, psIn.tangent, psIn.biNormal, psIn.uv);
 
     // step-2 各種マップをサンプリングする
+    float4 albedoColor = g_albedo.Sample(g_sampler, psIn.uv);
+
+    float3 specColor = albedoColor; // スペキュラカラーはアルベドカラーと同じにする
+
+    float metalic = g_metallicsSmoothMap.Sample(g_sampler, psIn.uv);
+
+    float smooth = g_metallicsSmoothMap.Sample(g_sampler, psIn.uv).a;
 
     // 視線に向かって伸びるベクトルを計算する
     float3 toEye = normalize(eyePos - psIn.worldPos);
 
     float3 lig = 0;
-    for(int ligNo = 0; ligNo < NUM_DIRECTIONAL_LIGHT; ligNo++)
+    for (int ligNo = 0; ligNo < NUM_DIRECTIONAL_LIGHT; ligNo++)
     {
         // step-3 シンプルなディズニーベースの拡散反射を実装する
+        float diffuseFromFresnel = CalcDiffuseFromFresnel(normal, -directionalLight[ligNo].direction, toEye);
+
+        float NdotL = saturate(dot(normal, -directionalLight[ligNo].direction));
+        float3 lambertDiffuse = directionalLight[ligNo].color * NdotL / PI;
+        float3 diffuse = albedoColor * diffuseFromFresnel * lambertDiffuse;
 
         // step-5 Cook-Torranceモデルを利用した鏡面反射率を計算する
+        float3 spec = CookTorranceSpecular(-directionalLight[ligNo].direction, toEye, normal, smooth)
+            * directionalLight[ligNo].color;
+        spec *= lerp(float3(1.0f, 1.0f, 1.0f), specColor, metalic);
 
         // step-6 滑らかさを使って、拡散反射光と鏡面反射光を合成する
-
+        lig += diffuse * (1.0f - smooth) + spec;
     }
 
     // 環境光による底上げ
