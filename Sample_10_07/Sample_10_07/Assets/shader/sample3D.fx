@@ -17,29 +17,33 @@ cbuffer ModelCb : register(b0)
 // 頂点シェーダーへの入力
 struct SVSIn
 {
-    float4 pos : POSITION;      // モデルの頂点座標
-    float3 normal : NORMAL;     // 法線
+    float4 pos : POSITION; // モデルの頂点座標
+    float3 normal : NORMAL; // 法線
     float3 tangent : TANGENT;
     float3 biNormal : BINORMAL;
-    float2 uv : TEXCOORD0;      // UV座標
+    float2 uv : TEXCOORD0; // UV座標
 };
 
 // ピクセルシェーダーへの入力
 struct SPSIn
 {
-    float4 pos : SV_POSITION;       // スクリーン空間でのピクセルの座標
-    float3 normal : NORMAL;         // 法線
-    float3 tangent : TANGENT;       // 接ベクトル
-    float3 biNormal : BINORMAL;     // 従法線ベクトル
-    float2 uv : TEXCOORD0;          // UV座標
-    float3 worldPos : TEXCOORD1;    // ワールド空間でのピクセルの座標
+    float4 pos : SV_POSITION; // スクリーン空間でのピクセルの座標
+    float3 normal : NORMAL; // 法線
+    float3 tangent : TANGENT; // 接ベクトル
+    float3 biNormal : BINORMAL; // 従法線ベクトル
+    float2 uv : TEXCOORD0; // UV座標
+    float3 worldPos : TEXCOORD1; // ワールド空間でのピクセルの座標
 
     // step-7 カメラ空間でのZ値を記録する変数を追加
-
+    float3 depthInView : TEXCOORD2;
 };
 
 // step-8 ピクセルシェーダーからの出力構造体を定義する。
-
+struct SPSOut
+{
+    float4 color : SV_Target0; // 出力カラー
+    float depth : SV_Target1; // 出力Z値
+};
 
 ///////////////////////////////////////////////////
 // グローバル変数
@@ -61,6 +65,7 @@ SPSIn VSMain(SVSIn vsIn)
     psIn.pos = mul(mView, psIn.pos);
 
     //step-9 頂点シェーダーでカメラ空間でのZ値を設定する
+    psIn.depthInView = psIn.pos.z;
 
     psIn.pos = mul(mProj, psIn.pos);
     psIn.normal = normalize(mul(mWorld, vsIn.normal));
@@ -77,5 +82,8 @@ SPSIn VSMain(SVSIn vsIn)
 SPSOut PSMain(SPSIn psIn)
 {
     //step-10 ピクセルシェーダーからカラーとZ値を出力する。
-
+    SPSOut psOut;
+    psOut.color = CalcPBR(psIn);
+    psOut.depth = psIn.depthInView;
+    return psOut;
 }

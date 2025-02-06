@@ -9,9 +9,9 @@ const int NUM_DIRECTIONAL_LIGHT = 4;
 /// </summary>
 struct DirectionalLight
 {
-    Vector3 direction;  // ライトの方向
-    float pad0;         // パディング
-    Vector4 color;      // ライトのカラー
+    Vector3 direction; // ライトの方向
+    float pad0; // パディング
+    Vector4 color; // ライトのカラー
 };
 
 /// <summary>
@@ -20,9 +20,9 @@ struct DirectionalLight
 struct Light
 {
     DirectionalLight directionalLight[NUM_DIRECTIONAL_LIGHT]; // ディレクションライト
-    Vector3 eyePos;                 // カメラの位置
-    float specPow;                  // スペキュラの絞り
-    Vector3 ambinetLight;           // 環境光
+    Vector3 eyePos; // カメラの位置
+    float specPow; // スペキュラの絞り
+    Vector3 ambinetLight; // 環境光
 };
 
 // 関数宣言
@@ -45,10 +45,32 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     Light light;
 
     // step-1 メインレンダリングターゲットと深度レンダリングターゲットを作成
+    // カラー
+    RenderTarget mainRenderTarget;
+    mainRenderTarget.Create(1280, 720, 1, 1, DXGI_FORMAT_R32G32B32A32_FLOAT, DXGI_FORMAT_D32_FLOAT);
+
+    // 深度
+    RenderTarget depthRenderTarget;
+    depthRenderTarget.Create(1280, 720, 1, 1, DXGI_FORMAT_R32_FLOAT, DXGI_FORMAT_UNKNOWN);
 
     // step-2 シーンテクスチャをぼかすためのガウシアンブラーオブジェクトを初期化
+    GaussianBlur blur;
+    blur.Init( &mainRenderTarget.GetRenderTargetTexture());
 
     // step-3 ボケ画像合成用のスプライトを初期化する
+    SpriteInitData combineBokeImageSpriteInitData;
+    combineBokeImageSpriteInitData.m_textures[0] = &blur.GetBokeTexture();
+    combineBokeImageSpriteInitData.m_textures[1] = &depthRenderTarget.GetRenderTargetTexture();
+    combineBokeImageSpriteInitData.m_width = 1280;
+    combineBokeImageSpriteInitData.m_height = 720;
+
+    combineBokeImageSpriteInitData.m_fxFilePath = "Assets/shader/samplePostEffect.fx";
+    combineBokeImageSpriteInitData.m_colorBufferFormat[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+    combineBokeImageSpriteInitData.m_alphaBlendMode = AlphaBlendMode_Trans;
+
+    Sprite combineBokeImageSprite;
+    combineBokeImageSprite.Init(combineBokeImageSpriteInitData);
 
     // メインレンダリングターゲットの絵をフレームバッファにコピーするためのスプライトを初期化
     // スプライトの初期化オブジェクトを作成する
@@ -87,10 +109,23 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         MoveCamera();
 
         // step-4 2枚のレンダリングターゲットを設定して、モデルを描画する
+        RenderTarget* rts[] = {&mainRenderTarget, &depthRenderTarget};
+        renderContext.WaitUntilToPossibleSetRenderTargets(2, rts);
+        renderContext.SetRenderTargetsAndViewport(2, rts);
+        renderContext.ClearRenderTargetViews(2, rts);
+        model.Draw(renderContext);
+        renderContext.WaitUntilFinishDrawingToRenderTargets(2, rts);
 
         // step-5 メインレンダリングターゲットのボケ画像を作成
+        blur.ExecuteOnGPU(renderContext, 5);
 
         // step-6 ボケ画像と深度テクスチャを利用して、ボケ画像を描きこんでいく
+        renderContext.WaitUntilToPossibleSetRenderTarget(mainRenderTarget);
+        renderContext.SetRenderTargetAndViewport( mainRenderTarget );
+
+        combineBokeImageSprite.Draw(renderContext);
+
+         renderContext.WaitUntilFinishDrawingToRenderTarget(mainRenderTarget);
 
         // メインレンダリングターゲットの絵をフレームバッファーにコピー
         renderContext.SetRenderTarget(
@@ -132,17 +167,16 @@ void InitRootSignature(RootSignature& rs)
 // パイプラインステートの初期化
 void InitPipelineState(PipelineState& pipelineState, RootSignature& rs, Shader& vs, Shader& ps)
 {
-
     // 頂点レイアウトを定義する
     D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
     {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
     };
 
     // パイプラインステートを作成
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = { 0 };
-    psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {0};
+    psoDesc.InputLayout = {inputElementDescs, _countof(inputElementDescs)};
     psoDesc.pRootSignature = rs.Get();
     psoDesc.VS = CD3DX12_SHADER_BYTECODE(vs.GetCompiledBlob());
     psoDesc.PS = CD3DX12_SHADER_BYTECODE(ps.GetCompiledBlob());

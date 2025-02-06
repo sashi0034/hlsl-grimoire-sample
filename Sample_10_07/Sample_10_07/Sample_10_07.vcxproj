@@ -201,6 +201,12 @@
     <ClCompile Include="..\..\MiniEngine\tkFile\TkmFile.cpp" />
     <ClCompile Include="..\..\MiniEngine\tkFile\TksFile.cpp" />
     <ClCompile Include="..\..\MiniEngine\VertexBuffer.cpp" />
+    <Content Include="Assets\shader\preset\gaussianBlur.fx" />
+    <Content Include="Assets\shader\preset\sample2D.fx" />
+    <Content Include="Assets\shader\sample3D.after.fx" />
+    <Content Include="Assets\shader\sample3D.fx" />
+    <Content Include="Assets\shader\samplePostEffect.after.fx" />
+    <Content Include="Assets\shader\samplePostEffect.fx" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -258,6 +264,7 @@
     <ClInclude Include="..\..\MiniEngine\tkFile\TkmFile.h" />
     <ClInclude Include="..\..\MiniEngine\tkFile\TksFile.h" />
     <ClInclude Include="..\..\MiniEngine\VertexBuffer.h" />
+    <Content Include="Assets\shader\preset\pbr.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="sub.h" />
     <ClInclude Include="system\system.h" />

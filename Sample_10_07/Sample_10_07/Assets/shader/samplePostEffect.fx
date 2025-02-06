@@ -4,20 +4,20 @@
 
 cbuffer cb : register(b0)
 {
-    float4x4 mvp;       // MVP行列
-    float4 mulColor;    // 乗算カラー
+    float4x4 mvp; // MVP行列
+    float4 mulColor; // 乗算カラー
 };
 
 struct VSInput
 {
     float4 pos : POSITION;
-    float2 uv  : TEXCOORD0;
+    float2 uv : TEXCOORD0;
 };
 
 struct PSInput
 {
     float4 pos : SV_POSITION;
-    float2 uv  : TEXCOORD0;
+    float2 uv : TEXCOORD0;
 };
 
 /*!
@@ -32,6 +32,8 @@ PSInput VSMain(VSInput In)
 }
 
 //step-11 ボケ画像と深度テクスチャにアクセスするための変数を追加
+Texture2D<float4> bokeTexture : register(t0);
+Texture2D<float> depthTexture : register(t1);
 
 sampler Sampler : register(s0);
 
@@ -42,5 +44,9 @@ sampler Sampler : register(s0);
 float4 PSMain(PSInput In) : SV_Target0
 {
     // step-12 ボケ画像書き込み用のピクセルシェーダーを実装
-
+    float depth = depthTexture.Sample(Sampler, In.uv).r;
+    clip(depth - 800.0f);
+    float4 boke = bokeTexture.Sample(Sampler, In.uv);
+    boke.a = min(1.0f, (depth - 800.0f) / 2000.0f);
+    return boke;
 }
