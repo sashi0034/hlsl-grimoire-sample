@@ -43,8 +43,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample_08_02", "Sample_08_0
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample_10_07", "Sample_10_07\Sample_10_07\Sample_10_07.vcxproj", "{7E02B89F-27AC-45A9-8793-FD68F5AE1007}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample_10_07", "Sample_10_07\Sample_10_07\Sample_10_07.vcxproj", "{7E02B89F-27AC-45A9-8793-FD68F5AE1007}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample_10_08", "Sample_10_08\Sample_10_08\Sample_10_08.vcxproj", "{7E02B89F-27AC-45A9-8793-FD68F5AE1008}"
 EndProject
 Global
