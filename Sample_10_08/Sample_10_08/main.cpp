@@ -24,25 +24,55 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     InitMainDepthRenderTarget(mainRenderTarget, depthRenderTarget);
 
     // step-1 各種レンダリングターゲットを初期化する
+    RenderTarget rtVerticalBlur;
+    RenderTarget rtDiagonalBlur;
+    RenderTarget rtRhomboidBlur;
+    rtVerticalBlur.Create(1280, 720, 1, 1, DXGI_FORMAT_R32G32B32A32_FLOAT, DXGI_FORMAT_UNKNOWN);
+    rtDiagonalBlur.Create(1280, 720, 1, 1, DXGI_FORMAT_R32G32B32A32_FLOAT, DXGI_FORMAT_UNKNOWN);
+    rtRhomboidBlur.Create(1280, 720, 1, 1, DXGI_FORMAT_R32G32B32A32_FLOAT, DXGI_FORMAT_UNKNOWN);
 
     // step-2 垂直、対角線ブラーをかけるためのスプライトを初期化
+    SpriteInitData vertDiagonalBlurSpriteInitData;
+    vertDiagonalBlurSpriteInitData.m_textures[0] = &mainRenderTarget.GetRenderTargetTexture();
+    vertDiagonalBlurSpriteInitData.m_width = 1280;
+    vertDiagonalBlurSpriteInitData.m_height = 720;
+    vertDiagonalBlurSpriteInitData.m_fxFilePath = "Assets/shader/sample.fx";
+
+    vertDiagonalBlurSpriteInitData.m_psEntryPoinFunc = "PSVerticalDiagonalBlur";
+    vertDiagonalBlurSpriteInitData.m_colorBufferFormat[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    vertDiagonalBlurSpriteInitData.m_colorBufferFormat[1] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+    Sprite vertDiagonalBlurSprite;
+    vertDiagonalBlurSprite.Init(vertDiagonalBlurSpriteInitData);
 
     // step-3 六角形ブラーをかけるためのスプライトを初期化
+    SpriteInitData rhomboidBlurSpriteInitData;
+    rhomboidBlurSpriteInitData.m_textures[0] = &rtVerticalBlur.GetRenderTargetTexture();
+    rhomboidBlurSpriteInitData.m_textures[1] = &rtDiagonalBlur.GetRenderTargetTexture();
+    rhomboidBlurSpriteInitData.m_width = 1280;
+    rhomboidBlurSpriteInitData.m_height = 720;
+    rhomboidBlurSpriteInitData.m_fxFilePath = "Assets/shader/sample.fx";
+
+    rhomboidBlurSpriteInitData.m_psEntryPoinFunc = "PSRhomboidBlur";
+    rhomboidBlurSpriteInitData.m_colorBufferFormat[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+    Sprite rhomboidBlurSprite;
+    rhomboidBlurSprite.Init(rhomboidBlurSpriteInitData);
 
     // ボケ画像をメインレンダリングターゲットに合成するためののスプライトを初期化する
     Sprite combineBokeImageSprite;
     InitCombimeBokeImageToSprite(
-        combineBokeImageSprite,                     // 初期化されるスプライト
-        rtPhomboidBlur.GetRenderTargetTexture(),    // ボケテクスチャ
-        depthRenderTarget.GetRenderTargetTexture()  // 深度テクスチャ
+        combineBokeImageSprite, // 初期化されるスプライト
+        rtRhomboidBlur.GetRenderTargetTexture(), // ボケテクスチャ
+        depthRenderTarget.GetRenderTargetTexture() // 深度テクスチャ
     );
 
     // メインレンダリングターゲットの絵をフレームバッファにコピーするためのスプライトを初期化
     // スプライトの初期化オブジェクトを作成する
     Sprite copyToFrameBufferSprite;
     InitCopyToFrameBufferTargetSprite(
-        copyToFrameBufferSprite,                    // 初期化されるスプライト
-        mainRenderTarget.GetRenderTargetTexture()   // メインレンダリングターゲットのテクスチャ
+        copyToFrameBufferSprite, // 初期化されるスプライト
+        mainRenderTarget.GetRenderTargetTexture() // メインレンダリングターゲットのテクスチャ
     );
 
     // 背景モデルを初期化
@@ -89,7 +119,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
         // モデルをドロー
         model.Draw(renderContext);
-        for (auto& sphereModel : sphereModels) {
+        for (auto& sphereModel : sphereModels)
+        {
             sphereModel.Draw(renderContext);
         }
 
@@ -97,8 +128,22 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         renderContext.WaitUntilFinishDrawingToRenderTargets(2, rts);
 
         // step-4 垂直、対角線ブラーをかける
+        RenderTarget* blurRts[] = {
+            &rtVerticalBlur,
+            &rtDiagonalBlur
+        };
+
+        renderContext.WaitUntilToPossibleSetRenderTargets(2, blurRts);
+        renderContext.SetRenderTargetsAndViewport(2, blurRts);
+        renderContext.ClearRenderTargetViews(2, blurRts);
+        vertDiagonalBlurSprite.Draw(renderContext);
+        renderContext.WaitUntilFinishDrawingToRenderTargets(2, blurRts);
 
         // step-5 六角形ブラーをかける
+        renderContext.WaitUntilToPossibleSetRenderTarget(rtRhomboidBlur);
+        renderContext.SetRenderTargetAndViewport(rtRhomboidBlur);
+        rhomboidBlurSprite.Draw(renderContext);
+        renderContext.WaitUntilFinishDrawingToRenderTarget(rtRhomboidBlur);
 
         // ボケ画像と深度テクスチャを利用して、ボケ画像を描きこんでいく
         // メインレンダリングターゲットを設定
@@ -147,17 +192,16 @@ void InitRootSignature(RootSignature& rs)
 // パイプラインステートの初期化
 void InitPipelineState(PipelineState& pipelineState, RootSignature& rs, Shader& vs, Shader& ps)
 {
-
     // 頂点レイアウトを定義する
     D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
     {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
     };
 
     // パイプラインステートを作成
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = { 0 };
-    psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {0};
+    psoDesc.InputLayout = {inputElementDescs, _countof(inputElementDescs)};
     psoDesc.pRootSignature = rs.Get();
     psoDesc.VS = CD3DX12_SHADER_BYTECODE(vs.GetCompiledBlob());
     psoDesc.PS = CD3DX12_SHADER_BYTECODE(ps.GetCompiledBlob());
