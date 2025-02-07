@@ -20,10 +20,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     InitRootSignature(rs);
 
     // step-1 シャドウマップ描画用のレンダリングターゲットを作成する
+    float
+        clearColor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+    RenderTarget shadowMap;
+    shadowMap.Create(1024, 1024, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_D32_FLOAT, clearColor);
 
     // step-2 影描画用のライトカメラを作成する
+    Camera lightCamera;
+    lightCamera.SetPosition(0, 600, 0);
+    lightCamera.SetTarget(0, 0, 0);
+    lightCamera.SetUp(1, 0, 0);
+    lightCamera.SetViewAngle(Math::DegToRad(20.0f));
+    lightCamera.Update();
 
     // step-3 シャドウマップ描画用のモデルを用意する
+    ModelInitData teapotShadowModelInitData;
+    teapotShadowModelInitData.m_fxFilePath = "Assets/shader/sampleDrawShadowMap.fx";
+    teapotShadowModelInitData.m_tkmFilePath = "Assets/modelData/teapot.tkm";
+
+    Model teapotShadowModel;
+    teapotShadowModel.Init(teapotShadowModelInitData);
+    teapotShadowModel.UpdateWorldMatrix({0, 50, 0}, g_quatIdentity, g_vec3One);
 
     // シャドウマップを表示するためのスプライトを初期化する
     SpriteInitData spriteInitData;
@@ -39,7 +56,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     ModelStandard teapotModel;
     teapotModel.Init("Assets/modelData/teapot.tkm");
     teapotModel.Update(
-        { 0, 50, 0 },
+        {0, 50, 0},
         g_quatIdentity,
         g_vec3One
     );
@@ -64,6 +81,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         //////////////////////////////////////
 
         // step-4 影を生成したいモデルをシャドウマップに描画する
+        renderContext.WaitUntilToPossibleSetRenderTarget(shadowMap);
+        renderContext.SetRenderTargetAndViewport(shadowMap);
+        renderContext.ClearRenderTargetView(shadowMap);
+        teapotShadowModel.Draw(renderContext, lightCamera);
+        renderContext.WaitUntilFinishDrawingToRenderTarget(shadowMap);
 
         // 通常レンダリング
         // レンダリングターゲットをフレームバッファに戻す
@@ -79,7 +101,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         // 背景を描画
         bgModel.Draw(renderContext);
 
-        sprite.Update({ FRAME_BUFFER_W / -2.0f, FRAME_BUFFER_H / 2.0f,  0.0f }, g_quatIdentity, g_vec3One, { 0.0f, 1.0f });
+        sprite.Update({FRAME_BUFFER_W / -2.0f, FRAME_BUFFER_H / 2.0f, 0.0f}, g_quatIdentity, g_vec3One, {0.0f, 1.0f});
         sprite.Draw(renderContext);
 
         //////////////////////////////////////
@@ -93,7 +115,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 }
 
 // ルートシグネチャの初期化
-void InitRootSignature( RootSignature& rs )
+void InitRootSignature(RootSignature& rs)
 {
     rs.Init(D3D12_FILTER_MIN_MAG_MIP_LINEAR,
             D3D12_TEXTURE_ADDRESS_MODE_WRAP,
