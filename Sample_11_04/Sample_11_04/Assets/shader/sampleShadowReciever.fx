@@ -19,31 +19,32 @@ cbuffer ShadowCb : register(b1)
 // 頂点シェーダーへの入力
 struct SVSIn
 {
-    float4 pos : POSITION;  // スクリーン空間でのピクセルの座標
+    float4 pos : POSITION; // スクリーン空間でのピクセルの座標
     float3 normal : NORMAL; // 法線
-    float2 uv : TEXCOORD0;  // uv座標
+    float2 uv : TEXCOORD0; // uv座標
 };
 
 // ピクセルシェーダーへの入力
 struct SPSIn
 {
-    float4 pos : SV_POSITION;       // スクリーン空間でのピクセルの座標
-    float3 normal : NORMAL;         // 法線
-    float2 uv : TEXCOORD0;          // uv座標
+    float4 pos : SV_POSITION; // スクリーン空間でのピクセルの座標
+    float3 normal : NORMAL; // 法線
+    float2 uv : TEXCOORD0; // uv座標
 
     // ライトビュースクリーン空間での座標を追加
-    float4 posInLVP : TEXCOORD1;    // ライトビュースクリーン空間でのピクセルの座標
+    float4 posInLVP : TEXCOORD1; // ライトビュースクリーン空間でのピクセルの座標
 };
 
 ///////////////////////////////////////////////////
 // グローバル変数
 ///////////////////////////////////////////////////
 
-Texture2D<float4> g_albedo : register(t0);      // アルベドマップ
-Texture2D<float4> g_shadowMap : register(t10);  // シャドウマップ
-sampler g_sampler : register(s0);               // サンプラーステート
+Texture2D<float4> g_albedo : register(t0); // アルベドマップ
+Texture2D<float4> g_shadowMap : register(t10); // シャドウマップ
+sampler g_sampler : register(s0); // サンプラーステート
 
 // step-1 シャドウマップサンプリング用のサンプラーステートを追加する
+SamplerComparisonState g_shadowMapSampler : register(s1);
 
 /// <summary>
 /// 影が落とされる3Dモデル用の頂点シェーダー
@@ -79,12 +80,18 @@ float4 PSMain(SPSIn psIn) : SV_Target0
     // ライトビュースクリーン空間でのZ値を計算する
     float zInLVP = psIn.posInLVP.z / psIn.posInLVP.w;
 
-    if(shadowMapUV.x > 0.0f && shadowMapUV.x < 1.0f
+    if (shadowMapUV.x > 0.0f && shadowMapUV.x < 1.0f
         && shadowMapUV.y > 0.0f && shadowMapUV.y < 1.0f)
     {
         // step-2 SampleCmpLevelZero()関数を使用して、遮蔽率を取得する
+        float shadow = g_shadowMap.SampleCmpLevelZero(
+            g_shadowMapSampler,
+            shadowMapUV,
+            zInLVP);
 
         // step-3 シャドウカラーと通常カラーを遮蔽率で線形補間する
+        float3 shadowColor = color.xyz * 0.5f;
+        color.xyz = lerp(color.xyz, shadowColor, shadow);
     }
 
     return color;
