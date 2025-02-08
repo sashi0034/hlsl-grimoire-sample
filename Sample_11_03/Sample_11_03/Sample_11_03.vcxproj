@@ -202,6 +202,13 @@
     <ClCompile Include="..\..\MiniEngine\tkFile\TkmFile.cpp" />
     <ClCompile Include="..\..\MiniEngine\tkFile\TksFile.cpp" />
     <ClCompile Include="..\..\MiniEngine\VertexBuffer.cpp" />
+    <Content Include="Assets\shader\preset\gaussianBlur.fx" />
+    <Content Include="Assets\shader\preset\modelStandard.fx" />
+    <Content Include="Assets\shader\preset\sprite.fx" />
+    <Content Include="Assets\shader\sampleDrawShadowMap.after.fx" />
+    <Content Include="Assets\shader\sampleDrawShadowMap.fx" />
+    <Content Include="Assets\shader\sampleShadowReciever.after.fx" />
+    <Content Include="Assets\shader\sampleShadowReciever.fx" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ModelStandard.cpp" />
     <ClCompile Include="stdafx.cpp">
